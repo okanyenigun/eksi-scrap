@@ -28,6 +28,7 @@ class EksiScraper:
 
             self.data[idx] = self._tour(url)
 
+        self.driver.quit()
         return self.data
     
     def get_collected_data(self) -> Dict[str, List[str]]:
