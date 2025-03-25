@@ -42,7 +42,6 @@ pip-delete-this-directory.txt
 *.csv
 *.geojson
 missingno.ipynb
-*.ipynb
 !QuickStart.ipynb
 _map.html
 *.pkl
@@ -51,3 +50,5 @@ _map.html
 .cache
 .pytest_cache
 tests/baseline/
+
+tutorial_local.ipynb
