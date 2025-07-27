@@ -4,7 +4,7 @@ from slugify import slugify
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
 
@@ -12,32 +12,38 @@ from ..core.browser_factory import get_browser_driver
 class AuthorScraper:
 
     def __init__(
-            self, 
-            author: str, 
-            driver_name: str = "uc", 
-            headless: bool = False, 
-            click_threshold: int = 10, 
-            binary_location: str = None
-            ):
+            self,
+            author: str,
+            driver_name: str = "uc",
+            headless: bool = False,
+            click_threshold: int = 10,
+            binary_location: Optional[str] = None,
+            version_main: Optional[int] = None
+    ):
         self.author = slugify(author)
         self.driver_name = driver_name
         self.headless = headless
-        self.browser = get_browser_driver(driver_name, headless, binary_location)
+        self.browser = get_browser_driver(
+            name=driver_name, headless=headless, binary_location=binary_location, version_main=version_main
+        )
         self.driver = self.browser.driver
         self.click_threshold = click_threshold
         self.entries = []
 
-    def wait_for_page_ready(self) -> None:
-        wait_for_class = SELECTORS["author"]["wait_for_class"]
+    def scrape(self) -> List[Dict[str, str]]:
         try:
-            WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, wait_for_class))
-            )
-        except Exception as e:
-            print(f"[WARN] Author page didn't fully load: {e}")
+            url = f"https://eksisozluk.com/biri/{self.author}"
+            self.driver.get(url)
+            self.scroll_to_bottom()
+            self.load_all_entries()
+            self.entries = self.parse_entries()
+            return self.entries
+        finally:
+            self.browser.quit()
 
     def scroll_to_bottom(self) -> None:
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        self.driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
     def load_all_entries(self) -> None:
@@ -46,12 +52,14 @@ class AuthorScraper:
 
         while True:
             if self.click_threshold is not None and click_count >= self.click_threshold:
-                print(f"[INFO] Reached click threshold: {self.click_threshold}")
+                print(
+                    f"[INFO] Reached click threshold: {self.click_threshold}")
                 break
 
             try:
                 load_more = WebDriverWait(self.driver, 5).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, load_more_class))
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR, load_more_class))
                 )
                 load_more.click()
                 time.sleep(2)
@@ -65,7 +73,6 @@ class AuthorScraper:
         title_class = SELECTORS["author"]["title"]
         content_class = SELECTORS["author"]["content"]
         date_class = SELECTORS["author"]["date"]
-
 
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
         topics = soup.select(topic_class)
@@ -84,15 +91,3 @@ class AuthorScraper:
             results.append(entry)
 
         return results
-
-    def scrape(self) -> List[Dict[str, str]]:
-        try:
-            url = f"https://eksisozluk.com/biri/{self.author}"
-            self.driver.get(url)
-            self.wait_for_page_ready()
-            self.scroll_to_bottom()
-            self.load_all_entries()
-            self.entries = self.parse_entries()
-            return self.entries
-        finally:
-            self.browser.quit()

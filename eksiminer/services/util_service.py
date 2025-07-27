@@ -3,24 +3,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
 
 
 def get_entry_from_url(
-        url: str, 
-        sync_driver: str = "uc", 
-        headless: bool = False, 
-        binary_location: str = None
-        ) -> List[Dict[str, str]]:
-    
+        url: str,
+        sync_driver: str = "uc",
+        headless: bool = False,
+        binary_location: Optional[str] = None,
+        version_main: Optional[int] = None
+) -> List[Dict[str, str]]:
+
     content_class = SELECTORS["entry_from_url"]["content"]
     author_class = SELECTORS["entry_from_url"]["author"]
     date_class = SELECTORS["entry_from_url"]["date"]
     title_class = SELECTORS["entry_from_url"]["title"]
-    
-    browser = get_browser_driver(sync_driver, headless=headless, binary_location=binary_location)
+
+    browser = get_browser_driver(
+        name=sync_driver, headless=headless, binary_location=binary_location, version_main=version_main
+    )
     driver = browser.driver
 
     try:
@@ -28,12 +31,14 @@ def get_entry_from_url(
 
         try:
             WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, content_class))
+                EC.visibility_of_element_located(
+                    (By.CSS_SELECTOR, content_class))
             )
         except Exception as e:
             print(f"[WARN] Entry content did not appear: {e}")
 
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(1)
 
         soup = BeautifulSoup(driver.page_source, "html.parser")

@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
 
@@ -11,28 +11,65 @@ from ..core.browser_factory import get_browser_driver
 class EntryScraper:
 
     def __init__(
-            self, 
-            topic: str, 
-            driver_name: str = "uc", 
-            headless: bool = False, 
-            binary_location: str = None, 
-            max_page_limit: int = None, 
-            reverse: bool = False
-            ):
+            self,
+            topic: str,
+            driver_name: str = "uc",
+            headless: bool = False,
+            binary_location: Optional[str] = None,
+            max_page_limit: Optional[int] = None,
+            reverse: bool = False,
+            version_main: Optional[int] = None
+    ):
         self.topic = topic
         self.driver_name = driver_name
         self.headless = headless
-        self.browser = get_browser_driver(driver_name, headless, binary_location=binary_location)
+        self.browser = get_browser_driver(
+            name=driver_name,
+            headless=headless,
+            binary_location=binary_location,
+            version_main=version_main
+        )
         self.driver = self.browser.driver
         self.max_page_limit = max_page_limit
         self.reverse = reverse
         self.entries = []
         self.topic_url = ""
 
+    def scrape(self) -> List[Dict[str, str]]:
+        try:
+            self.open_search_page()
+            self.submit_search()
+            total_pages = self.get_total_pages()
+
+            if self.max_page_limit is not None:
+                page_count = min(self.max_page_limit, total_pages)
+            else:
+                page_count = total_pages
+
+            if self.reverse:
+                page_range = range(total_pages, total_pages - page_count, -1)
+            else:
+                page_range = range(1, page_count + 1)
+
+            print(
+                f"[INFO] Scraping topic: {self.topic_url} with {len(page_range)} pages")
+
+            for page in page_range:
+                page_entries = self.scrape_page(page)
+                self.entries.extend(page_entries)
+                print(f"[INFO] Scraped page {page}/{page_count}")
+
+            self.browser.quit()
+
+            return self.entries
+
+        finally:
+            self.browser.quit()
+
     def open_search_page(self) -> None:
         website = SELECTORS["website"]
-
         self.driver.get(website)
+
         try:
             wait_for = SELECTORS["search"]["input"]
             WebDriverWait(self.driver, 10).until(
@@ -40,33 +77,36 @@ class EntryScraper:
             )
         except Exception as e:
             print(f"[WARN] Search input did not load properly: {e}")
-        
+
         return
-    
+
     def submit_search(self) -> None:
         input_element_id = SELECTORS["search"]["input"]
-        
+
         search_box = self.driver.find_element("id", input_element_id)
         search_box.clear()
         search_box.send_keys(self.topic)
 
         button_element_selector = SELECTORS["search"]["button"]
-        submit_btn = self.driver.find_element("css selector", button_element_selector)
+        submit_btn = self.driver.find_element(
+            "css selector", button_element_selector)
         submit_btn.click()
         time.sleep(2)
         self.topic_url = self.driver.current_url
         return
-    
+
     def get_total_pages(self) -> int:
         last_page_element_selector = SELECTORS["entry"]["total_page"]
         try:
-            last_page_element = self.driver.find_element("css selector", last_page_element_selector)
+            last_page_element = self.driver.find_element(
+                "css selector", last_page_element_selector)
             return int(last_page_element.text)
         except:
             return 1
-        
+
     def scroll_to_bottom(self) -> None:
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        self.driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(1)
 
     def scrape_page(self, page_num: int) -> List[Dict[str, str]]:
@@ -79,7 +119,8 @@ class EntryScraper:
         self.driver.get(url)
         try:
             WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, container_class))
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, container_class))
             )
         except Exception as e:
             print(f"[WARN] No entries found on page {page_num}: {e}")
@@ -103,31 +144,3 @@ class EntryScraper:
             results.append(entry)
 
         return results
-
-    def scrape(self) -> List[Dict[str, str]]:
-        try:
-            self.open_search_page()
-            self.submit_search()
-            total_pages = self.get_total_pages()
-
-            if self.max_page_limit is not None:
-                page_count = min(self.max_page_limit, total_pages)
-            else:
-                page_count = total_pages
-
-            if self.reverse:
-                page_range = range(total_pages, total_pages - page_count, -1)
-            else:
-                page_range = range(1, page_count + 1)
-
-            print(f"[INFO] Scraping topic: {self.topic_url} with {len(page_range)} pages")
-
-            for page in page_range:
-                page_entries = self.scrape_page(page)
-                self.entries.extend(page_entries)
-                print(f"[INFO] Scraped page {page}/{page_count}")
-                
-            return self.entries
-
-        finally:
-            self.browser.quit()

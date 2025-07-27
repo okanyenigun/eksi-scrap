@@ -52,3 +52,6 @@ _map.html
 tests/baseline/
 
 tutorial_local.ipynb
+
+*.pickle
+sil.ipynb
