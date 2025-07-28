@@ -12,41 +12,37 @@ class EntryScraper:
 
     def __init__(
             self,
-            topic: str,
             driver_name: str = "uc",
             headless: bool = False,
             binary_location: Optional[str] = None,
-            max_page_limit: Optional[int] = None,
-            reverse: bool = False,
             version_main: Optional[int] = None
     ):
-        self.topic = topic
         self.driver_name = driver_name
         self.headless = headless
+        self.binary_location = binary_location
+        self.version_main = version_main
         self.browser = get_browser_driver(
-            name=driver_name,
-            headless=headless,
-            binary_location=binary_location,
-            version_main=version_main
+            name=self.driver_name,
+            headless=self.headless,
+            binary_location=self.binary_location,
+            version_main=self.version_main
         )
         self.driver = self.browser.driver
-        self.max_page_limit = max_page_limit
-        self.reverse = reverse
         self.entries = []
         self.topic_url = ""
 
-    def scrape(self) -> List[Dict[str, str]]:
+    def scrape(self, topic: str, max_page_limit: Optional[int] = None, reverse: bool = False) -> List[Dict[str, str]]:
         try:
             self.open_search_page()
-            self.submit_search()
+            self.submit_search(topic)
             total_pages = self.get_total_pages()
 
-            if self.max_page_limit is not None:
-                page_count = min(self.max_page_limit, total_pages)
+            if max_page_limit is not None:
+                page_count = min(max_page_limit, total_pages)
             else:
                 page_count = total_pages
 
-            if self.reverse:
+            if reverse:
                 page_range = range(total_pages, total_pages - page_count, -1)
             else:
                 page_range = range(1, page_count + 1)
@@ -80,12 +76,12 @@ class EntryScraper:
 
         return
 
-    def submit_search(self) -> None:
+    def submit_search(self, topic: str) -> None:
         input_element_id = SELECTORS["search"]["input"]
 
         search_box = self.driver.find_element("id", input_element_id)
         search_box.clear()
-        search_box.send_keys(self.topic)
+        search_box.send_keys(topic)
 
         button_element_selector = SELECTORS["search"]["button"]
         submit_btn = self.driver.find_element(
@@ -144,3 +140,16 @@ class EntryScraper:
             results.append(entry)
 
         return results
+
+    def restart_driver(self) -> None:
+        if self.browser:
+            self.browser.quit()
+
+        self.browser = get_browser_driver(
+            name=self.driver_name,
+            headless=self.headless,
+            binary_location=self.binary_location,
+            version_main=self.version_main
+        )
+        self.driver = self.browser.driver
+        return
