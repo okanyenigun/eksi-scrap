@@ -22,6 +22,10 @@ from eksiminer import get_gundem
 results = get_gundem(binary_location=binary_location)
 
 print(len(results))
+
+results = get_gundem(binary_location=binary_location, headline="siyaset")
+
+print(len(results))
 ```
 
 Returns a list of trending topic titles on Ekşi Sözlük.
@@ -29,14 +33,15 @@ Returns a list of trending topic titles on Ekşi Sözlük.
 **Scrape Entries from a Topic**
 
 ```python
-from eksiminer import EntryScraper
+from eksiminer import TopicScraper
 
 topic = "Ekrem İmamoğlu"
 
-scraper = EntryScraper(topic=topic, binary_location=binary_location, max_page_limit=3, reverse=True)
-entries = scraper.scrape()
+scraper = TopicScraper(binary_location=binary_location)
 
-print(len(entries))
+results = scraper.scrape(topic=topic, max_page_limit=3, reverse=True)
+
+print(len(results))
 ```
 
 Scrapes entries from a given topic. You can limit the number of pages and choose reverse chronological order.
@@ -46,9 +51,9 @@ Scrapes entries from a given topic. You can limit the number of pages and choose
 ```python
 from eksiminer import get_debe_list
 
-debes = get_debe_list(binary_location=binary_location)
+results = get_debe_list(binary_location=binary_location)
 
-print(len(debes))
+print(len(results))
 ```
 
 Returns a list of DEBE topics (most liked entries of the previous day).
@@ -60,9 +65,9 @@ from eksiminer import get_entry_from_url
 
 url = "https://eksisozluk.com/entry/173974269"
 
-entry = get_entry_from_url(url=url, binary_location=binary_location)
+result = get_entry_from_url(url=url, binary_location=binary_location)
 
-print(entry)
+print(result)
 ```
 
 Fetches a specific entry given its URL.
@@ -74,9 +79,26 @@ from eksiminer import AuthorScraper
 
 author = "seven years in tibet"
 
-scraper = AuthorScraper(author=author, click_threshold=3, binary_location=binary_location)
+scraper = AuthorScraper(binary_location=binary_location)
 
-entries = scraper.scrape()
+entries = scraper.scrape(author=author, number_endless_scroll=3)
+
+print(len(entries))
+```
+
+**Scrate Entries by URLs**
+
+```python
+from eksiminer import TopicUrlService
+
+urls = [
+    "https://eksisozluk.com/29-temmuz-2025-ozgur-ozel-komisyon-aciklamasi--8009885?a=popular",
+    "https://eksisozluk.com/arabada-ideal-klima-derecesi--6157779?a=popular"
+]
+
+scraper = TopicUrlService(binary_location=binary_location)
+
+entries = scraper.scrape(urls=urls, max_page_limit=2, reverse=True)
 
 print(len(entries))
 ```
