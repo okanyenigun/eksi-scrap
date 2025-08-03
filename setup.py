@@ -37,6 +37,7 @@ setup(
         'python-slugify==8.0.4',
         'undetected-chromedriver==3.5.5',
         'webdriver-manager==4.0.2',
+        'pydantic==2.11.7',
     ],
     python_requires='>=3.7',
 )

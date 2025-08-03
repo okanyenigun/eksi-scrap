@@ -2,9 +2,10 @@ from bs4 import BeautifulSoup
 from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
+from ..core.schemas import GundemResponse
 
 
-def _parse_gundem(html: str, selector: str) -> List[Dict[str, str]]:
+def _parse_gundem(html: str, selector: str) -> List[GundemResponse]:
     website = SELECTORS["website"]
 
     soup = BeautifulSoup(html, "html.parser")
@@ -22,7 +23,7 @@ def _parse_gundem(html: str, selector: str) -> List[Dict[str, str]]:
             count = "0"
             title = " ".join(title_list)
         full_url = f"{website}{href}"
-        results.append({"title": title, "url": full_url, "count": count})
+        results.append(GundemResponse(title=title, url=full_url, count=count))
 
     return results
 
@@ -35,6 +36,29 @@ def get_gundem(
         binary_location: Optional[str] = None,
         version_main: Optional[int] = None
 ) -> List[Dict[str, str]]:
+    """
+    Get the current trending topics from the website.
+
+    Args:
+        headline (Optional[str], optional): The headline to filter topics. Defaults to None. 'siyaset' for politics, etc.
+        sync_driver (str, optional): The synchronous browser driver to use. Defaults to "uc".
+        headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
+        selector_override (Optional[str], optional): The CSS selector to use for overriding the default. Defaults to None.
+        binary_location (Optional[str], optional): The path to the browser binary. Defaults to None.
+        version_main (Optional[int], optional): The main version of the browser to use. Defaults to None.
+
+    Returns:
+        List[Dict[str, str]]: The list of trending topics. 
+        Example:
+        [
+            {
+                'title': '29 temmuz 2025 özgür özel komisyon açıklaması',
+                'url': 'https://eksisozluk.com/29-temmuz-2025-ozgur-ozel-komisyon-aciklamasi--8009885?a=popular',
+                'count': '270'
+            },
+            ...
+        ]
+    """
 
     selector = selector_override or SELECTORS["gundem"]["container"]
     wait_for_class = SELECTORS["gundem"]["wait_for_class"]
@@ -58,6 +82,7 @@ def get_gundem(
         browser.quit()
 
     results = _parse_gundem(html, selector)
+    results = [result.model_dump() for result in results]
     return results
 
 

@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
+from ..core.schemas import DebeResponse
 
 
 def get_debe_list(
@@ -14,7 +15,25 @@ def get_debe_list(
         binary_location: Optional[str] = None,
         version_main: Optional[int] = None
 ) -> List[Dict[str, str]]:
+    """Get a list of debe entries.
 
+    Args:
+        sync_driver (str, optional): Sync driver to use. Defaults to "uc".
+        headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
+        binary_location (Optional[str], optional): Path to the browser binary. Defaults to None.
+        version_main (Optional[int], optional): Main version of the browser. Defaults to None.
+
+    Returns:
+        List[Dict[str, str]]: A list of debe entries.
+
+        [
+            {
+                'title': "esenyurt'ta yayaları durdurup haraç kesen çete",
+                'url': 'https://eksisozluk.com/entry/177149240?debe=true'
+            },
+            ...
+        ]
+    """
     wait_for_class = SELECTORS["debe"]["wait_for_class"]
     container_class = SELECTORS["debe"]["container"]
     debe_website = SELECTORS["debe_website"]
@@ -46,9 +65,13 @@ def get_debe_list(
             href = a_tag.get("href")
             title = a_tag.get_text(strip=True)
             full_url = f"https://eksisozluk.com{href}"
-            results.append({"title": title, "url": full_url})
+            results.append(DebeResponse(title=title, url=full_url))
 
+        results = [entry.model_dump() for entry in results]
         return results
+    except Exception as e:
+        print(f"[ERROR] An error occurred while scraping debe list: {e}")
+        raise e
 
     finally:
         browser.quit()

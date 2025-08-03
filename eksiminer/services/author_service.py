@@ -7,37 +7,60 @@ from selenium.webdriver.support import expected_conditions as EC
 from typing import List, Dict, Optional
 from .selectors import SELECTORS
 from ..core.browser_factory import get_browser_driver
+from ..core.schemas import TopicBaseResponse
 
 
 class AuthorScraper:
 
     def __init__(
             self,
-            author: str,
             driver_name: str = "uc",
             headless: bool = False,
-            click_threshold: int = 10,
             binary_location: Optional[str] = None,
             version_main: Optional[int] = None
     ):
-        self.author = slugify(author)
         self.driver_name = driver_name
         self.headless = headless
         self.browser = get_browser_driver(
             name=driver_name, headless=headless, binary_location=binary_location, version_main=version_main
         )
         self.driver = self.browser.driver
-        self.click_threshold = click_threshold
         self.entries = []
 
-    def scrape(self) -> List[Dict[str, str]]:
+    def scrape(self, author: str, number_endless_scroll: int = 10) -> List[Dict[str, str]]:
+        """Scrape entries from a specific author's page.
+
+        Args:
+            author (str): The author's name.
+            number_endless_scroll (int, optional): The number of times to scroll down to load more entries. Defaults to 10.
+
+        Raises:
+            e: An error occurred while scraping author entries.
+
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries containing author entry data.
+
+            [
+                {
+                    'title': 'fenerbahçe',
+                    'content': "1907. entry'm senin adına olsun istedim. “bütün duyguları anlatmaya yetecek kadar kelime yoktur, gerek de yoktur” der cengiz aytmatov . onun yerine bu sevdaya nasıl bulaştığımıza dair bir video bırakayım. çünkü bazen ufak bir enstantane, sayfalarca yazı yazmaktan daha iyi açıklar durumu: link",
+                    'date': '02.08.2024 19:19'
+                },
+                ...
+            ]
+        """
+        author_slug = slugify(author)
         try:
-            url = f"https://eksisozluk.com/biri/{self.author}"
+            url = f"https://eksisozluk.com/biri/{author_slug}"
             self.driver.get(url)
             self.scroll_to_bottom()
-            self.load_all_entries()
-            self.entries = self.parse_entries()
+            self.load_all_entries(number_endless_scroll)
+            self.entries = self.parse_entries(author)
+            self.entries = [entry.model_dump() for entry in self.entries]
             return self.entries
+        except Exception as e:
+            print(f"[ERROR] An error occurred while scraping author: {e}")
+            raise e
         finally:
             self.browser.quit()
 
@@ -46,14 +69,14 @@ class AuthorScraper:
             "window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-    def load_all_entries(self) -> None:
+    def load_all_entries(self, number_endless_scroll: int) -> None:
         load_more_class = SELECTORS["author"]["load_more"]
         click_count = 0
 
         while True:
-            if self.click_threshold is not None and click_count >= self.click_threshold:
+            if number_endless_scroll is not None and click_count >= number_endless_scroll:
                 print(
-                    f"[INFO] Reached click threshold: {self.click_threshold}")
+                    f"[INFO] Reached click threshold: {number_endless_scroll}")
                 break
 
             try:
@@ -68,7 +91,7 @@ class AuthorScraper:
             except:
                 break
 
-    def parse_entries(self) -> List[Dict[str, str]]:
+    def parse_entries(self, author: str) -> List[TopicBaseResponse]:
         topic_class = SELECTORS["author"]["topic"]
         title_class = SELECTORS["author"]["title"]
         content_class = SELECTORS["author"]["content"]
@@ -83,11 +106,14 @@ class AuthorScraper:
             content_div = item.select_one(content_class)
             date_tag = item.select_one(date_class)
 
-            entry = {
-                "title": title_tag.get_text(strip=True) if title_tag else None,
-                "content": content_div.get_text(separator=" ", strip=True) if content_div else None,
-                "date": date_tag.get_text(strip=True) if date_tag else None,
-            }
+            entry = TopicBaseResponse(
+                topic=title_tag.get_text(strip=True) if title_tag else None,
+                content=content_div.get_text(
+                    separator=" ", strip=True) if content_div else None,
+                date=date_tag.get_text(strip=True) if date_tag else None,
+                author=author,
+            )
+
             results.append(entry)
 
         return results
