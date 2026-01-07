@@ -7,7 +7,7 @@ with open("Readme.md", "r") as f:
 
 setup(
     name="eksiminer",
-    version="0.0.2",
+    version="0.0.3",
     description="eksiminer is a Python package for scraping entries, topics, authors, and daily highlights from eksisozluk.com",
     packages=find_packages(),
     long_description=long_description,

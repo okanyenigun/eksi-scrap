@@ -29,6 +29,7 @@ def _parse_gundem(html: str, selector: str) -> List[GundemResponse]:
 
 
 def get_gundem(
+        channel: Optional[str] = None,
         headline: Optional[str] = None,
         sync_driver: str = "uc",
         headless: bool = False,
@@ -40,6 +41,7 @@ def get_gundem(
     Get the current trending topics from the website.
 
     Args:
+        channel (Optional[str], optional): The channel to filter topics. Defaults to None. 'siyaset' for politics, etc.
         headline (Optional[str], optional): The headline to filter topics. Defaults to None. 'siyaset' for politics, etc.
         sync_driver (str, optional): The synchronous browser driver to use. Defaults to "uc".
         headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
@@ -65,7 +67,11 @@ def get_gundem(
     website = SELECTORS["website"]
 
     if headline:
+        print("'headline' parameter will be deprecated soon. Please use 'channel' parameter instead.")
         website = f"{website}/basliklar/kanal/{headline}"
+
+    if channel:
+        website = f"{website}/basliklar/kanal/{channel}"
 
     try:
         browser = get_browser_driver(
@@ -87,6 +93,7 @@ def get_gundem(
 
 
 async def get_gundem_async(
+        channel: Optional[str] = None,
         headline: Optional[str] = None,
         async_driver: str = "uc",
         headless: bool = False,
@@ -100,7 +107,11 @@ async def get_gundem_async(
     website = SELECTORS["website"]
 
     if headline:
+        print("'headline' parameter will be deprecated soon. Please use 'channel' parameter instead.")
         website = f"{website}/basliklar/kanal/{headline}"
+
+    if channel:
+        website = f"{website}/basliklar/kanal/{channel}"
 
     try:
         browser = get_browser_driver(
