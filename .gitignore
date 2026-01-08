@@ -22,7 +22,6 @@ var/
 .installed.cfg
 *.egg
 MANIFEST
-requirements.txt
 
 # Project folders
 .idea
