@@ -67,9 +67,34 @@ class UCDriver(BaseBrowser):
     @staticmethod
     def get_chrome_canary_version() -> int:
         if platform == "darwin":
-            path = "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
+            # Try Canary first, fall back to regular Chrome
+            possible_paths = [
+                "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            ]
+            path = None
+            for p in possible_paths:
+                import os
+                if os.path.exists(p):
+                    path = p
+                    break
+            if not path:
+                raise RuntimeError("Chrome/Chrome Canary not found on macOS")
         elif platform.startswith("linux"):
-            path = "/usr/bin/google-chrome-canary"
+            # Chrome Canary is not available for Linux, use regular Chrome
+            possible_paths = [
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable",
+                "/usr/bin/chromium-browser",
+                "/usr/bin/chromium"
+            ]
+            path = None
+            for p in possible_paths:
+                if subprocess.run(["which", p], capture_output=True).returncode == 0:
+                    path = p
+                    break
+            if not path:
+                raise RuntimeError("Chrome/Chromium not found on Linux system")
         elif platform == "win32":
             path = r"C:\Users\%USERNAME%\AppData\Local\Google\Chrome SxS\Application\chrome.exe"
         else:
