@@ -8,11 +8,12 @@ class GundemResponse(BaseModel):
 
 
 class TopicBaseResponse(BaseModel):
-    topic: str = Field(..., description="The topic of the entry.")
+    title: str = Field(..., description="The topic of the entry.")
     content: str = Field(..., description="The content of the entry.")
     author: str = Field(..., description="The author of the entry.")
-    date: str = Field(...,
-                      description="The date of the entry in 'DD.MM.YYYY HH:MM' format.")
+    date: str = Field(
+        ..., description="The date of the entry in 'DD.MM.YYYY HH:MM' format."
+    )
 
 
 class DebeResponse(BaseModel):

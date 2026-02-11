@@ -1,114 +1,117 @@
 # eksiminer
 
-**eksiminer** is a Python package for scraping entries, topics, authors, and daily highlights from [Ekşi Sözlük](https://eksisozluk.com), one of Turkey's most popular social platforms. It provides a simple interface to extract trending topics, DEBE (Dünün En Beğenilen Entry'leri), individual entries, and user-specific content.
+A Python package for scraping [Ekşi Sözlük](https://eksisozluk.com) - trending topics, entries, authors, and DEBE lists.
 
-> ⚠️ This package requires a Chromium-based browser driver. Provide the path using the `binary_location` parameter.
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
 pip install eksiminer
 ```
 
-#### Usage Examples
-
-**Get Gündem (Trending Topics)**
+## Quick Start
 
 ```python
-from eksiminer import get_gundem
+from eksiminer import get_trending_topics
 
-results = get_gundem(binary_location=binary_location)
-
-print(len(results))
-
-results = get_gundem(binary_location=binary_location, headline="siyaset")
-
-print(len(results))
+results = get_trending_topics(headless=True)
+print(results[0])
 ```
 
-Returns a list of trending topic titles on Ekşi Sözlük.
+## Usage
 
-**Scrape Entries from a Topic**
+**Get Trending Topics**
 
 ```python
-from eksiminer import TopicScraper
+from eksiminer import get_trending_topics
 
-topic = "Ekrem İmamoğlu"
+# All trending topics
+results = get_trending_topics(headless=True)
 
-scraper = TopicScraper(binary_location=binary_location)
-
-results = scraper.scrape(topic=topic, max_page_limit=3, reverse=True)
-
-print(len(results))
+# Specific channel (spor, siyaset, iliskiler, etc.)
+results = get_trending_topics(channel="siyaset", headless=True)
 ```
 
-Scrapes entries from a given topic. You can limit the number of pages and choose reverse chronological order.
-
-**Get DEBE List (Best of Yesterday)**
+**Get Topic Entries**
 
 ```python
-from eksiminer import get_debe_list
+from eksiminer import get_topic_entries
 
-results = get_debe_list(binary_location=binary_location)
+# Single topic
+results = get_topic_entries(
+    topic="yapay zeka",
+    max_page_limit=2,
+    headless=True
+)
 
-print(len(results))
+# Multiple topics
+results = get_topic_entries(
+    topic=["topic1", "topic2"],
+    max_page_limit=2,
+    headless=True
+)
 ```
 
-Returns a list of DEBE topics (most liked entries of the previous day).
-
-**Get Specific Entry from URL**
+**Get DEBE List**
 
 ```python
-from eksiminer import get_entry_from_url
+from eksiminer import get_debe_topics_list
 
-url = "https://eksisozluk.com/entry/173974269"
-
-result = get_entry_from_url(url=url, binary_location=binary_location)
-
-print(result)
+results = get_debe_topics_list(headless=True)
 ```
 
-Fetches a specific entry given its URL.
-
-**Scrape Entries by Author**
+**Get Entry by URL**
 
 ```python
-from eksiminer import AuthorScraper
+from eksiminer import get_entry_by_url
 
-author = "seven years in tibet"
-
-scraper = AuthorScraper(binary_location=binary_location)
-
-entries = scraper.scrape(author=author, number_endless_scroll=3)
-
-print(len(entries))
+entry = get_entry_by_url("https://eksisozluk.com/entry/123456", headless=True)
 ```
 
-**Scrate Entries by URLs**
+**Get Author Entries**
 
 ```python
-from eksiminer import TopicUrlService
+from eksiminer import get_author_entries
 
-urls = [
-    "https://eksisozluk.com/29-temmuz-2025-ozgur-ozel-komisyon-aciklamasi--8009885?a=popular",
-    "https://eksisozluk.com/arabada-ideal-klima-derecesi--6157779?a=popular"
-]
-
-scraper = TopicUrlService(binary_location=binary_location)
-
-entries = scraper.scrape(urls=urls, max_page_limit=2, reverse=True)
-
-print(len(entries))
+entries = get_author_entries(
+    author="username",
+    number_endless_scroll=10,
+    headless=True
+)
 ```
 
-Scrapes entries written by a specific author. You can set how many times to click "load more" with click_threshold.
+**Reuse Driver (Faster)**
 
-## Licence
+```python
+from eksiminer import UCDriverClient, get_trending_topics, get_debe_topics_list
 
-MIT License.
+driver = UCDriverClient(headless=True)
 
-## Contributions
+trending = get_trending_topics(driver=driver)
+debe = get_debe_topics_list(driver=driver)
 
-Feel free to open issues or submit pull requests. Contributions are welcome!
+driver.close()
+```
+
+## LangChain Integration
+
+```bash
+pip install eksiminer langchain langchain-openai
+```
+
+```python
+from eksiminer.extensions.tools.langchain import (
+    get_trending_topics_tool,
+    get_topic_entries_tool,
+    get_debe_topics_list_tool,
+    get_entry_by_url_tool,
+    get_author_entries_tool
+)
+```
+
+## Documentation
+
+- [tutorial.ipynb](tutorial.ipynb) - Interactive examples
+
+## License
+
+MIT License
